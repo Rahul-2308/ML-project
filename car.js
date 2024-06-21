@@ -6,19 +6,32 @@ class Car {
     this.height = height;
 
     this.speed = 0;
-    this.acceleration = 0.1;
-    this.MaxSpeed = 5;
-    this.friction = 0.02;
+    this.acceleration = 0.3;
+    this.maxSpeed = 5;
+    this.friction = 0.05;
     this.angle = 0;
+    this.damaged = false;
 
     this.sensor = new Sensor(this);
     this.controls = new Controls();
   }
 
   update(roadBorders) {
-    this.#move();
-    this.polygon = this.#createPolygon();
+    if (!this.damaged) {
+      this.#move();
+      this.polygon = this.#createPolygon();
+      this.damaged = this.#assessDamage(roadBorders);
+    }
     this.sensor.update(roadBorders);
+  }
+
+  #assessDamage(roadBorders) {
+    for (let i = 0; i < roadBorders.length; i++) {
+      if (polysIntersect(this.polygon, roadBorders[i])) {
+        return true;
+      }
+    }
+    return false;
   }
 
   #createPolygon() {
@@ -51,12 +64,14 @@ class Car {
     if (this.controls.reverse) {
       this.speed -= this.acceleration;
     }
-    if (this.speed > this.MaxSpeed) {
-      this.speed = this.MaxSpeed;
+
+    if (this.speed > this.maxSpeed) {
+      this.speed = this.maxSpeed;
     }
-    if (this.speed < -this.MaxSpeed / 2) {
-      this.speed = -this.MaxSpeed / 2;
+    if (this.speed < -this.maxSpeed / 2) {
+      this.speed = -this.maxSpeed / 2;
     }
+
     if (this.speed > 0) {
       this.speed -= this.friction;
     }
@@ -66,21 +81,27 @@ class Car {
     if (Math.abs(this.speed) < this.friction) {
       this.speed = 0;
     }
+
     if (this.speed != 0) {
       const flip = this.speed > 0 ? 1 : -1;
       if (this.controls.left) {
-        this.angle += 0.05 * flip;
+        this.angle += 0.03 * flip;
       }
       if (this.controls.right) {
-        this.angle -= 0.05 * flip;
+        this.angle -= 0.03 * flip;
       }
     }
+
     this.x -= Math.sin(this.angle) * this.speed;
     this.y -= Math.cos(this.angle) * this.speed;
-    this.y -= this.speed;
   }
 
   draw(ctx) {
+    if (this.damaged) {
+      ctx.fillStyle = "gray";
+    } else {
+      ctx.fillStyle = "black";
+    }
     ctx.beginPath();
     ctx.moveTo(this.polygon[0].x, this.polygon[0].y);
     for (let i = 1; i < this.polygon.length; i++) {
